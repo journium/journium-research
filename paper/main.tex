@@ -11,6 +11,7 @@
 \usepackage{microtype}
 \usepackage{enumitem}
 \usepackage{booktabs}
+\usepackage{tabularx}
 \usepackage{tikz}
 \usepackage{pgfplots}
 \usetikzlibrary{arrows.meta,positioning,calc}
@@ -506,6 +507,29 @@ where:
 
 The weights $(\alpha, \beta, \gamma, \omega, \varepsilon)$ are configurable per deployed monitoring context. We acknowledge that the definition of interestingness is inherently subjective \cite{silberschatz1995}.
 
+Table~\ref{tab:scoring} illustrates the scoring algorithm applied to five synthetic findings from a representative product funnel. The prioritisation is well-behaved: the high-significance, high-reach activation driver (F002) ranks first; the statistically weak, small-sample drop-off cluster (F005) ranks last.
+
+\begin{table}[htbp]
+\centering
+\caption{Composite interestingness scores for five synthetic detector findings
+(weights: $\alpha{=}0.30$, $\beta{=}0.25$, $\gamma{=}0.20$, $\omega{=}0.15$,
+$\varepsilon{=}0.10$). Scores computed from synthetic simulation data by
+\texttt{interestingness\_scoring.py}.}
+\label{tab:scoring}
+\small
+\begin{tabularx}{\linewidth}{cll>{\raggedright\arraybackslash}Xr}
+\toprule
+\textbf{Rank} & \textbf{ID} & \textbf{Detector} & \textbf{Finding (summary)} & \textbf{Score} \\
+\midrule
+1 & F002 & ActivationDriver   & \texttt{feature\_used} is activation driver for \texttt{converted} (lift 4.2$\times$) & 0.845 \\
+2 & F001 & TemporalRegression & \texttt{email\_verified}$\to$\texttt{profile\_complete} drop-off $+$18\,pp post-v2.3  & 0.736 \\
+3 & F004 & SegmentDivergence  & Mobile conversion 22\,pp below desktop                                               & 0.602 \\
+4 & F003 & UnexpectedLoop     & Loop: \texttt{profile\_complete}$\to$\texttt{sign\_up} (8\% of users)                & 0.252 \\
+5 & F005 & DropOffCluster     & Drop-off at \texttt{sign\_up}$\to$abandoned (low significance, $N{=}85$)             & 0.054 \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
 \subsection{Confidence Scoring}
 
 Each behavioral fact carries a confidence score in $[0, 1]$ computed as:
@@ -624,6 +648,8 @@ In addition to push-based insight delivery, the GLL supports a pull-based query 
 \subsection{Challenges Unique to Behavioral Intelligence Systems}
 
 Evaluating behavioral intelligence systems presents challenges not present in standard supervised learning settings. There is no ground truth for the set of insights that should be generated from a given event stream. Evaluation must operate across multiple dimensions: computational correctness, statistical validity, and insight quality.
+
+The numerical illustrations in Sections~\ref{sec:formal} and~\ref{sec:detectors} (Figures~\ref{fig:markov}--\ref{fig:removal} and Table~\ref{tab:scoring}) are reproduced exactly by the public simulation scripts at \url{https://github.com/journium/journium-research}; they serve as worked examples of formal correctness, not as empirical evaluation of a deployed system.
 
 \subsection{Correctness Metrics}
 
