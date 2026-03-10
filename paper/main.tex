@@ -63,7 +63,7 @@ Contemporary product analytics systems require users to pose explicit queries---
 
 We present the Behavioral Intelligence Platform (BIP), a system architecture and formal framework that transforms raw event streams into automatically generated, evidence-backed insights. BIP introduces four tightly integrated layers: (1) a Normalization and State Derivation (NSD) stage that standardizes raw events and maps them to a multi-level semantic state hierarchy; (2) a Behavioral Graph Engine (BGE) that models user journeys as absorbing Markov chains, computing transition probabilities, removal effects, and path quality metrics; (3) a Behavioral Knowledge Graph (BKG) combined with a Detector System (DS) that reifies graph outputs into a queryable triple-store of grounded behavioral facts and autonomously identifies behavioral phenomena; and (4) a Grounded Language Layer (GLL) that constrains large language model (LLM) output to verified facts from the BKG, producing faithful narrative insights at scale.
 
-We formalize the Behavioral Intelligence Problem, define a taxonomy of detectors for autonomous insight generation (activation drivers, drop-off clusters, behavioral regressions, segment divergence, unexpected loops), and propose a composite interestingness score for prioritizing insights under bounded attention. We discuss the key design principles---grounded-first computation, semantic state abstraction, time-aware snapshots, and segment-aware analysis---and characterize the fundamental trade-offs between completeness, causal interpretability, and computational cost. The architecture is evaluated against correctness, latency, and insight quality criteria, with discussion of evaluation challenges unique to unsupervised insight generation.
+We formalize the Behavioral Intelligence Problem, define a taxonomy of detectors for autonomous insight generation (activation drivers, drop-off clusters, behavioral regressions, segment divergence, unexpected loops), and propose a composite interestingness score for prioritizing insights under bounded attention. We discuss the key design principles---grounded-first computation, semantic state abstraction, time-aware snapshots, and segment-aware analysis---and characterize the fundamental trade-offs between completeness, causal interpretability, and computational cost. We define evaluation criteria for correctness, latency, and insight quality, and characterize the fundamental challenges of assessing behavioral intelligence systems --- challenges that are unique to unsupervised, push-based insight generation and that motivate an open evaluation agenda.
 
 \textbf{Keywords:} behavioral analytics, user journey modeling, Markov chains, knowledge graphs, automatic insight generation, proactive analytics, large language models, product analytics, retrieval-augmented generation, event stream processing
 \end{abstract}
@@ -283,7 +283,7 @@ where the denominator sums over all states, including absorbing states. This sat
 
 Transition probabilities are estimated over a fixed analysis window, implicitly assuming behavioral stationarity within that window. This assumption is acknowledged to be an approximation; Section~\ref{sec:discussion} discusses non-stationarity as a direction for future work.
 
-Figure~\ref{fig:markov} shows a concrete four-state funnel modeled as an absorbing Markov chain. Three transient states (\texttt{sign\_up}, \texttt{feature\_used}, \texttt{invite\_teammate}) lead to two absorbing states (\texttt{converted} and \texttt{dropped\_off}). The dashed back-edge from \texttt{feature\_used} to \texttt{sign\_up} illustrates re-visitation, which is fully representable in the model.
+Figure~\ref{fig:markov} shows a concrete six-state funnel modeled as an absorbing Markov chain. Four transient states (\texttt{sign\_up}, \texttt{feature\_used}, \texttt{import\_data}, \texttt{invite\_teammate}) lead to two absorbing states (\texttt{converted} and \texttt{dropped\_off}). The dashed back-edge from \texttt{feature\_used} to \texttt{sign\_up} illustrates re-visitation, which is fully representable in the model.
 
 \begin{figure}[htbp]
 \centering
@@ -296,27 +296,42 @@ Figure~\ref{fig:markov} shows a concrete four-state funnel modeled as an absorbi
   >=Stealth, thick
 ]
   \node[transient] (s1) at (0,0)      {sign\_up};
-  \node[transient] (s2) at (3.4,0)    {feature\_\\used};
-  \node[transient] (s3) at (6.8,0)    {invite\_\\teammate};
-  \node[absorbing] (cv) at (10.2,0)   {converted};
-  \node[absorbing] (dp) at (5.1,-2.4) {dropped\\off};
+  \node[transient] (s2) at (2.8,0)    {feature\_\\used};
+  \node[transient] (s3) at (5.6,0)    {import\_\\data};
+  \node[transient] (s4) at (8.4,0)    {invite\_\\teammate};
+  \node[absorbing] (cv) at (11.2,0)   {converted};
+  \node[absorbing] (dp) at (5.6,-2.4) {dropped\\off};
 
+  % Main forward path
   \draw[->]        (s1) -- node[above,font=\scriptsize]{0.52} (s2);
   \draw[->]        (s2) -- node[above,font=\scriptsize]{0.44} (s3);
-  \draw[->]        (s3) -- node[above,font=\scriptsize]{0.71} (cv);
+  \draw[->]        (s3) -- node[above,font=\scriptsize]{0.70} (s4);
+  \draw[->]        (s4) -- node[above,font=\scriptsize]{0.71} (cv);
+
+  % Back edge
   \draw[->,dashed] (s2) to[bend left=28]
                         node[above,font=\scriptsize]{0.15} (s1);
-  \draw[->] (s1) to[bend right=18]
-                  node[left,font=\scriptsize]{0.31} (dp);
-  \draw[->] (s2)  -- node[right,font=\scriptsize]{0.41} (dp);
-  \draw[->] (s3) to[bend left=18]
+
+  % Small direct conversions (thin arrows)
+  \draw[->,thin]   (s1) to[bend left=14]
+                        node[above,font=\tiny]{0.02} (cv);
+  \draw[->,thin]   (s3) to[bend left=14]
+                        node[above,font=\tiny]{0.08} (cv);
+
+  % Drop-off edges
+  \draw[->] (s1) to[bend right=22]
+                  node[left,font=\scriptsize]{0.46} (dp);
+  \draw[->] (s2) -- node[left,font=\scriptsize]{0.41} (dp);
+  \draw[->] (s3) -- node[right,font=\scriptsize]{0.22} (dp);
+  \draw[->] (s4) to[bend left=22]
                   node[right,font=\scriptsize]{0.29} (dp);
 \end{tikzpicture}
-\caption{Example four-state funnel as an absorbing Markov chain.
+\caption{Example six-state funnel as an absorbing Markov chain.
 Single-bordered circles are transient states ($\mathcal{S}$);
 double-bordered circles are absorbing states ($\mathcal{A}$).
 Edge labels are empirical transition probabilities; each row sums to~1
-across all outgoing edges. The dashed back-edge represents
+across all outgoing edges (thin arrows indicate low-probability direct
+conversions). The dashed back-edge represents
 re-visitation from \texttt{feature\_used} to \texttt{sign\_up}.}
 \label{fig:markov}
 \end{figure}
@@ -341,9 +356,11 @@ The probability of being absorbed by terminal state $t$ when starting from trans
   \label{eq:absorption}
 \end{equation}
 
-In the product analytics context, $B(s_i, \text{converted})$ is the outcome conversion probability conditioned on having visited state $s_i$---a key metric for activation driver detection and path quality scoring.
+In the product analytics context, $B(s_i, \text{converted})$ is the probability of conversion when \textbf{starting from} transient state $s_i$ --- equivalently, the long-run fraction of journeys that reach \texttt{converted} among those that begin at $s_i$.
 
-Figure~\ref{fig:absorption} illustrates $B$ for the example funnel, comparing $P(\text{converted} \mid \text{reached}(s))$ against $P(\text{converted} \mid \neg\,\text{reached}(s))$ for each transient state. States with a large gap between the two quantities---\texttt{feature\_used} and \texttt{invite\_teammate} in this example---are strong candidate activation drivers.
+In the empirical product context we additionally track $P(\text{converted} \mid \text{reached}(s))$ --- the fraction of observed journeys that converted among all that \emph{visited} $s$ at any point. Figure~\ref{fig:absorption} plots this empirical conditional and its complement for each transient state. For sequential funnels with low re-visitation, $P(\text{converted} \mid \text{reached}(s))$ closely approximates $B(s, \text{converted})$; in the presence of significant looping, the two measures may diverge.
+
+States with a large gap between $P(\text{converted} \mid \text{reached}(s))$ and $P(\text{converted} \mid \neg\,\text{reached}(s))$---\texttt{feature\_used}, \texttt{import\_data}, and \texttt{invite\_teammate} in this example---are strong candidate activation drivers.
 
 \begin{figure}[htbp]
 \centering
@@ -431,7 +448,7 @@ The removal effect of state $s$ with respect to terminal outcome $t$ is the decr
 
 A high removal effect indicates that the state lies on the dominant conversion paths in the graph. Note that removal effect is not equivalent to causal effect; it is a structural property of the observed graph.
 
-Figure~\ref{fig:removal} ranks all transient states in the example funnel by removal effect. \texttt{feature\_used} has the highest structural impact: removing it from the journey graph reduces $P(\text{converted})$ by~0.18, almost double the impact of the next-highest state.
+Figure~\ref{fig:removal} ranks non-start transient states by removal effect. \texttt{import\_data} has the highest structural impact ($\Delta \approx 0.14$): as the sole gateway to \texttt{invite\_teammate}, removing it eliminates the dominant conversion path.
 
 \begin{figure}[htbp]
 \centering
@@ -440,35 +457,35 @@ Figure~\ref{fig:removal} ranks all transient states in the example funnel by rem
   xbar,
   bar width=16pt,
   width=0.72\linewidth,
-  height=5.6cm,
+  height=5.0cm,
   xlabel={Removal effect on $P(\text{converted})$},
   xlabel style={font=\small},
-  ytick={1,2,3,4},
+  ytick={1,2,3},
   yticklabels={%
-    \texttt{sign\_up},
-    \texttt{import\_data},
     \texttt{invite\_teammate},
-    \texttt{feature\_used}},
+    \texttt{feature\_used},
+    \texttt{import\_data}},
   yticklabel style={font=\small},
-  xmin=0, xmax=0.24,
+  xmin=0, xmax=0.20,
   xtick={0,0.05,0.10,0.15,0.20},
   xticklabel style={font=\small},
   grid=major,
   grid style={dashed,gray!30},
   nodes near coords,
   nodes near coords style={font=\scriptsize, xshift=2pt},
-  enlarge y limits=0.22,
+  enlarge y limits=0.28,
 ]
 \addplot[fill=teal!50, draw=teal!70] coordinates {
-  (0.04,1) (0.09,2) (0.11,3) (0.18,4)
+  (0.08,1) (0.12,2) (0.14,3)
 };
 \end{axis}
 \end{tikzpicture}
 \caption{Removal effect ranking (Eq.~\eqref{eq:removal}) for the example funnel.
 Each bar shows the decrease in overall $P(\text{converted})$ when the corresponding
 state is removed from the journey graph and transition probabilities are
-re-normalised. \texttt{feature\_used} is the structurally most critical state,
-making it the top-ranked activation driver candidate.}
+re-normalised. \texttt{import\_data} is the structurally most critical state,
+as it is the sole gateway to \texttt{invite\_teammate} --- the highest-converting
+transient state.}
 \label{fig:removal}
 \end{figure}
 
@@ -539,7 +556,7 @@ Each behavioral fact carries a confidence score in $[0, 1]$ computed as:
   \label{eq:confidence}
 \end{equation}
 
-where $\sigma$ is the logistic function, $z_{\text{score}}$ is the z-statistic, $n$ is the sample size, $n_{\min}$ is the configured minimum threshold, and $(a, b, c)$ are calibrated coefficients. Confidence is presented to end users as a qualitative label (High, Medium, Low).
+where $\sigma$ is the logistic function, $z_{\text{score}}$ is the z-statistic, $n$ is the sample size, $n_{\min}$ is the configured minimum threshold, and $(a, b, c)$ are coefficients calibrated against historical annotation data (deployment-specific). Confidence is presented to end users as a qualitative label (High, Medium, Low).
 
 % ---------------------------------------------------------------
 \section{Detector System}
@@ -641,7 +658,7 @@ The resulting narrative is stored alongside the finding in the insight feed, wit
 In addition to push-based insight delivery, the GLL supports a pull-based query interface. The query is processed by a structured planner that: (1) identifies the relevant journey definition and time window, (2) retrieves candidate facts from the BKG using semantic search over fact summaries, (3) constructs a bounded fact bundle from the retrieved facts, (4) generates a response constrained to the fact bundle. This architecture is analogous to GraphRAG applied to a dynamically constructed behavioral knowledge graph.
 
 % ---------------------------------------------------------------
-\section{Evaluation Framework}
+\section{Evaluation Framework and Open Measurement Challenges}
 \label{sec:evaluation}
 % ---------------------------------------------------------------
 
@@ -649,7 +666,7 @@ In addition to push-based insight delivery, the GLL supports a pull-based query 
 
 Evaluating behavioral intelligence systems presents challenges not present in standard supervised learning settings. There is no ground truth for the set of insights that should be generated from a given event stream. Evaluation must operate across multiple dimensions: computational correctness, statistical validity, and insight quality.
 
-The numerical illustrations in Sections~\ref{sec:formal} and~\ref{sec:detectors} (Figures~\ref{fig:markov}--\ref{fig:removal} and Table~\ref{tab:scoring}) are reproduced exactly by the public simulation scripts at \url{https://github.com/journium/journium-research}; they serve as worked examples of formal correctness, not as empirical evaluation of a deployed system.
+The Markov chain computations underlying Figures~\ref{fig:markov} and~\ref{fig:removal} and Table~\ref{tab:scoring} are reproduced by the public simulation scripts at \url{https://github.com/journium/journium-research}. Figure~\ref{fig:absorption} shows empirical conditional conversion rates $P(\text{converted} \mid \text{reached}(s))$ from synthetic trajectory data; these are distinct from, but consistent with, the absorption probabilities $B$ computed by the scripts (see Section~\ref{sec:formal}). All figures serve as worked examples of formal correctness, not as empirical evaluation of a deployed system.
 
 \subsection{Correctness Metrics}
 

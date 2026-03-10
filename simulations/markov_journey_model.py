@@ -27,11 +27,11 @@ import numpy as np
 # ---------------------------------------------------------------------------
 # Journey definition
 # ---------------------------------------------------------------------------
-# States in a simple signup-to-activation funnel:
-#   Transient: sign_up, email_verified, profile_complete, feature_used
+# States matching the paper's example funnel (Figure 2):
+#   Transient: sign_up, feature_used, import_data, invite_teammate
 #   Absorbing: converted (paid), dropped (churned)
 
-TRANSIENT = ["sign_up", "email_verified", "profile_complete", "feature_used"]
+TRANSIENT = ["sign_up", "feature_used", "import_data", "invite_teammate"]
 ABSORBING = ["converted", "dropped"]
 
 # ---------------------------------------------------------------------------
@@ -39,20 +39,20 @@ ABSORBING = ["converted", "dropped"]
 # Estimated from observed journey data (Section 4, Eq. 1)
 # ---------------------------------------------------------------------------
 #
-# Layout: [sign_up, email_verified, profile_complete, feature_used,
+# Layout: [sign_up, feature_used, import_data, invite_teammate,
 #          converted, dropped]
 #
 # Row must sum to 1.0 (row-stochastic property, Eq. 2)
 
 P_full = np.array([
-    # from sign_up
-    [0.00, 0.70, 0.10, 0.00,  0.02, 0.18],
-    # from email_verified
-    [0.00, 0.00, 0.65, 0.10,  0.05, 0.20],
-    # from profile_complete
-    [0.00, 0.00, 0.00, 0.75,  0.05, 0.20],
-    # from feature_used
-    [0.00, 0.00, 0.05, 0.10,  0.60, 0.25],
+    # from sign_up      -> feature_used(0.52), converted(0.02), dropped(0.46)
+    [0.00, 0.52, 0.00, 0.00,  0.02, 0.46],
+    # from feature_used -> sign_up(0.15), import_data(0.44), dropped(0.41)
+    [0.15, 0.00, 0.44, 0.00,  0.00, 0.41],
+    # from import_data  -> invite_teammate(0.70), converted(0.08), dropped(0.22)
+    [0.00, 0.00, 0.00, 0.70,  0.08, 0.22],
+    # from invite_teammate -> converted(0.71), dropped(0.29)
+    [0.00, 0.00, 0.00, 0.00,  0.71, 0.29],
 ])
 
 n_t = len(TRANSIENT)
