@@ -1,0 +1,46 @@
+cff-version: 1.2.0
+message: "If you use this work, please cite it using the metadata below."
+type: article
+title: >-
+  Behavioral Intelligence Platforms: From Event Streams to Autonomous Insight
+  via Probabilistic Journey Graphs, Behavioral Knowledge Extraction,
+  and Grounded Language Generation
+authors:
+  - family-names: Patra
+    given-names: Arun
+    email: arun@journium.inc
+    affiliation: "Journium, Inc."
+  - family-names: Vadgave
+    given-names: Bhushan
+    email: bhushan@journium.inc
+    affiliation: "Journium, Inc."
+date-released: "2026-03-01"
+version: "1.0.0"
+abstract: >-
+  We present the Behavioral Intelligence Platform (BIP), a system architecture
+  and formal framework that transforms raw event streams into automatically
+  generated, evidence-backed insights. BIP introduces four tightly integrated
+  layers: a Normalization and State Derivation stage, a Behavioral Graph Engine
+  that models user journeys as absorbing Markov chains, a Behavioral Knowledge
+  Graph combined with a Detector System, and a Grounded Language Layer that
+  constrains LLM output to verified facts. We formalize the Behavioral
+  Intelligence Problem, define a taxonomy of detectors for autonomous insight
+  generation, and propose a composite interestingness score for prioritizing
+  insights under bounded attention.
+keywords:
+  - behavioral analytics
+  - user journey modeling
+  - Markov chains
+  - knowledge graphs
+  - automatic insight generation
+  - proactive analytics
+  - large language models
+  - product analytics
+  - retrieval-augmented generation
+  - event stream processing
+license: CC-BY-4.0
+repository-code: "https://github.com/journium/journium-research"
+identifiers:
+  - type: other
+    value: "Submitted for peer review, March 2026"
+    description: "Submission status (arXiv identifier to be added upon posting)"
