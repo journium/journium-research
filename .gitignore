@@ -37,6 +37,7 @@ build/
 .venv/
 venv/
 env/
+reviews/
 
 # Jupyter
 .ipynb_checkpoints/
