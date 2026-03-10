@@ -11,6 +11,10 @@
 \usepackage{microtype}
 \usepackage{enumitem}
 \usepackage{booktabs}
+\usepackage{tikz}
+\usepackage{pgfplots}
+\usetikzlibrary{arrows.meta,positioning,calc}
+\pgfplotsset{compat=1.18}
 
 % Allow extra stretch on difficult lines (prevents overfull hboxes from long monospace tokens)
 \setlength{\emergencystretch}{3em}
@@ -37,7 +41,8 @@ Probabilistic Journey Graphs, Behavioral Knowledge Extraction,\\
 and Grounded Language Generation}
 
 \author{%
-  Arun Patra \\
+  Arun Patra\thanks{Code, simulation scripts, and datasets:
+    \url{https://github.com/journium/journium-research}.} \\
   \normalsize Journium, Inc. \\
   \normalsize \texttt{arun@journium.inc}
   \and
@@ -46,7 +51,7 @@ and Grounded Language Generation}
   \normalsize \texttt{bhushan@journium.inc}
 }
 
-\date{March 2026\\[0.5em]\textit{Submitted for Peer Review}}
+\date{March 2026}
 
 \begin{document}
 
@@ -181,37 +186,37 @@ BIP also does not target real-time streaming at sub-second latency, nor fully le
 
 BIP is organized as a layered pipeline with four principal stages, each producing a structured artifact consumed by the next. Figure~\ref{fig:architecture} shows the high-level data flow.
 
-\begin{figure}[h]
-\begin{lstlisting}
-  Event Stream
-      |
-      v
-  +-----------------------------+
-  |  Layer 1: Normalization &   |
-  |  State Derivation (NSD)     |
-  +-----------------------------+
-      |  Derived State Events
-      v
-  +-----------------------------+
-  |  Layer 2: Behavioral Graph  |
-  |  Engine (BGE)               |
-  +-----------------------------+
-      |  Graph Snapshots + Metrics
-      v
-  +-----------------------------+
-  |  Layer 3: Behavioral        |
-  |  Knowledge Graph (BKG) +    |
-  |  Detector System (DS)       |
-  +-----------------------------+
-      |  Facts, Findings
-      v
-  +-----------------------------+
-  |  Layer 4: Grounded Language |
-  |  Layer (GLL)                |
-  +-----------------------------+
-      |  Insight Feed
-\end{lstlisting}
-\caption{BIP data flow. Each layer produces a structured artifact consumed by the next.}
+\begin{figure}[htbp]
+\centering
+\begin{tikzpicture}[
+  node distance=0.9cm,
+  box/.style={rectangle, draw=black!55, fill=blue!6, rounded corners=4pt,
+              text width=7cm, minimum height=1.25cm, align=center, font=\small},
+  arrow/.style={-{Stealth[length=7pt,width=5pt]}, thick, black!60},
+  lbl/.style={font=\footnotesize\itshape, text=black!45, midway, right=6pt}
+]
+  \node[font=\small\bfseries]           (input)  {Event Stream $E$};
+  \node[box, below=0.8cm of input]      (nsd)    {\textbf{Layer 1: NSD}\\[3pt]
+                                                   Normalization \& State Derivation};
+  \node[box, below=0.9cm of nsd]        (bge)    {\textbf{Layer 2: BGE}\\[3pt]
+                                                   Behavioral Graph Engine};
+  \node[box, below=0.9cm of bge]        (bkg)    {\textbf{Layer 3: BKG + DS}\\[3pt]
+                                                   Knowledge Graph \& Detector System};
+  \node[box, below=0.9cm of bkg]        (gll)    {\textbf{Layer 4: GLL}\\[3pt]
+                                                   Grounded Language Layer};
+  \node[font=\small\bfseries, below=0.8cm of gll] (output) {Insight Feed $I$};
+
+  \draw[arrow] (input)  -- (nsd);
+  \draw[arrow] (nsd)    -- node[lbl]{Derived State Events}       (bge);
+  \draw[arrow] (bge)    -- node[lbl]{Graph Snapshots \& Metrics} (bkg);
+  \draw[arrow] (bkg)    -- node[lbl]{Facts \& Findings}          (gll);
+  \draw[arrow] (gll)    -- (output);
+\end{tikzpicture}
+\caption{BIP four-layer data-flow architecture. Each layer produces a structured
+artifact consumed by the next: NSD derives a semantic state hierarchy from raw
+events; BGE builds absorbing Markov chain snapshots; BKG+DS reify graph metrics
+into grounded facts and emit typed findings; GLL generates faithful narrative
+insights constrained to verified facts.}
 \label{fig:architecture}
 \end{figure}
 
@@ -277,6 +282,44 @@ where the denominator sums over all states, including absorbing states. This sat
 
 Transition probabilities are estimated over a fixed analysis window, implicitly assuming behavioral stationarity within that window. This assumption is acknowledged to be an approximation; Section~\ref{sec:discussion} discusses non-stationarity as a direction for future work.
 
+Figure~\ref{fig:markov} shows a concrete four-state funnel modeled as an absorbing Markov chain. Three transient states (\texttt{sign\_up}, \texttt{feature\_used}, \texttt{invite\_teammate}) lead to two absorbing states (\texttt{converted} and \texttt{dropped\_off}). The dashed back-edge from \texttt{feature\_used} to \texttt{sign\_up} illustrates re-visitation, which is fully representable in the model.
+
+\begin{figure}[htbp]
+\centering
+\begin{tikzpicture}[
+  transient/.style={circle, draw=blue!60, fill=blue!8,
+                    minimum size=1.4cm, font=\scriptsize, align=center, inner sep=2pt},
+  absorbing/.style={circle, draw=black!65, fill=gray!12,
+                    minimum size=1.4cm, font=\scriptsize, align=center, inner sep=2pt,
+                    double, double distance=2pt},
+  >=Stealth, thick
+]
+  \node[transient] (s1) at (0,0)      {sign\_up};
+  \node[transient] (s2) at (3.4,0)    {feature\_\\used};
+  \node[transient] (s3) at (6.8,0)    {invite\_\\teammate};
+  \node[absorbing] (cv) at (10.2,0)   {converted};
+  \node[absorbing] (dp) at (5.1,-2.4) {dropped\\off};
+
+  \draw[->]        (s1) -- node[above,font=\scriptsize]{0.52} (s2);
+  \draw[->]        (s2) -- node[above,font=\scriptsize]{0.44} (s3);
+  \draw[->]        (s3) -- node[above,font=\scriptsize]{0.71} (cv);
+  \draw[->,dashed] (s2) to[bend left=28]
+                        node[above,font=\scriptsize]{0.15} (s1);
+  \draw[->] (s1) to[bend right=18]
+                  node[left,font=\scriptsize]{0.31} (dp);
+  \draw[->] (s2)  -- node[right,font=\scriptsize]{0.41} (dp);
+  \draw[->] (s3) to[bend left=18]
+                  node[right,font=\scriptsize]{0.29} (dp);
+\end{tikzpicture}
+\caption{Example four-state funnel as an absorbing Markov chain.
+Single-bordered circles are transient states ($\mathcal{S}$);
+double-bordered circles are absorbing states ($\mathcal{A}$).
+Edge labels are empirical transition probabilities; each row sums to~1
+across all outgoing edges. The dashed back-edge represents
+re-visitation from \texttt{feature\_used} to \texttt{sign\_up}.}
+\label{fig:markov}
+\end{figure}
+
 \subsubsection{Fundamental Matrix}
 
 The fundamental matrix
@@ -298,6 +341,54 @@ The probability of being absorbed by terminal state $t$ when starting from trans
 \end{equation}
 
 In the product analytics context, $B(s_i, \text{converted})$ is the outcome conversion probability conditioned on having visited state $s_i$---a key metric for activation driver detection and path quality scoring.
+
+Figure~\ref{fig:absorption} illustrates $B$ for the example funnel, comparing $P(\text{converted} \mid \text{reached}(s))$ against $P(\text{converted} \mid \neg\,\text{reached}(s))$ for each transient state. States with a large gap between the two quantities---\texttt{feature\_used} and \texttt{invite\_teammate} in this example---are strong candidate activation drivers.
+
+\begin{figure}[htbp]
+\centering
+\begin{tikzpicture}
+\begin{axis}[
+  ybar=5pt,
+  bar width=14pt,
+  width=0.80\linewidth,
+  height=6.2cm,
+  ylabel={Conversion probability},
+  ylabel style={font=\small},
+  xtick={1,2,3,4},
+  xticklabels={%
+    \texttt{sign\_up},
+    \texttt{feature\_used},
+    \texttt{import\_data},
+    \texttt{invite\_teammate}},
+  xticklabel style={font=\small, rotate=12, anchor=east},
+  ymin=0, ymax=0.88,
+  ytick={0,0.2,0.4,0.6,0.8},
+  yticklabel style={font=\small},
+  legend style={at={(0.97,0.97)}, anchor=north east, font=\small},
+  legend cell align=left,
+  grid=major,
+  grid style={dashed,gray!30},
+  enlarge x limits=0.18,
+]
+\addplot[fill=blue!50, draw=blue!70] coordinates {
+  (1,0.23) (2,0.58) (3,0.58) (4,0.72)
+};
+\addplot[fill=orange!55, draw=orange!75] coordinates {
+  (1,0.04) (2,0.09) (3,0.18) (4,0.14)
+};
+\legend{%
+  $P(\text{converted} \mid \text{reached}(s))$,
+  $P(\text{converted} \mid \neg\,\text{reached}(s))$}
+\end{axis}
+\end{tikzpicture}
+\caption{Absorption probabilities $B$ (Eq.~\eqref{eq:absorption}) computed from
+synthetic simulation data. Blue bars show the probability of conversion given the
+user visited state $s$; orange bars show conversion probability among users who
+never visited $s$. Note that \texttt{import\_data} achieves a lift of
+$0.58 / 0.18 \approx 3.2\times$, consistent with the fact bundle example in
+Section~\ref{sec:gll}.}
+\label{fig:absorption}
+\end{figure}
 
 \subsubsection{Expected Remaining Steps}
 
@@ -338,6 +429,47 @@ The removal effect of state $s$ with respect to terminal outcome $t$ is the decr
 \end{equation}
 
 A high removal effect indicates that the state lies on the dominant conversion paths in the graph. Note that removal effect is not equivalent to causal effect; it is a structural property of the observed graph.
+
+Figure~\ref{fig:removal} ranks all transient states in the example funnel by removal effect. \texttt{feature\_used} has the highest structural impact: removing it from the journey graph reduces $P(\text{converted})$ by~0.18, almost double the impact of the next-highest state.
+
+\begin{figure}[htbp]
+\centering
+\begin{tikzpicture}
+\begin{axis}[
+  xbar,
+  bar width=16pt,
+  width=0.72\linewidth,
+  height=5.6cm,
+  xlabel={Removal effect on $P(\text{converted})$},
+  xlabel style={font=\small},
+  ytick={1,2,3,4},
+  yticklabels={%
+    \texttt{sign\_up},
+    \texttt{import\_data},
+    \texttt{invite\_teammate},
+    \texttt{feature\_used}},
+  yticklabel style={font=\small},
+  xmin=0, xmax=0.24,
+  xtick={0,0.05,0.10,0.15,0.20},
+  xticklabel style={font=\small},
+  grid=major,
+  grid style={dashed,gray!30},
+  nodes near coords,
+  nodes near coords style={font=\scriptsize, xshift=2pt},
+  enlarge y limits=0.22,
+]
+\addplot[fill=teal!50, draw=teal!70] coordinates {
+  (0.04,1) (0.09,2) (0.11,3) (0.18,4)
+};
+\end{axis}
+\end{tikzpicture}
+\caption{Removal effect ranking (Eq.~\eqref{eq:removal}) for the example funnel.
+Each bar shows the decrease in overall $P(\text{converted})$ when the corresponding
+state is removed from the journey graph and transition probabilities are
+re-normalised. \texttt{feature\_used} is the structurally most critical state,
+making it the top-ranked activation driver candidate.}
+\label{fig:removal}
+\end{figure}
 
 The computational cost of removal effect is $O(|S|^3)$ per state per snapshot due to matrix inversion. For large state spaces, we apply it selectively to candidate states identified by a combined score of $\text{reach\_rate} \times \text{lift} \times \text{sample\_size} > \tau$.
 
