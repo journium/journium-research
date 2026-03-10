@@ -1,8 +1,9 @@
 # Behavioral Intelligence Platforms: From Event Streams to Autonomous Insight
 
 **Authors:** Arun Patra, Bhushan Vadgave — Journium, Inc.
+**Preprint · March 2026**
 
-**Status:** Submitted for Peer Review · March 2026
+📄 **[Read the paper (PDF)](paper.pdf)**
 
 ---
 
@@ -104,15 +105,15 @@ jupyter notebook simulations/notebooks/journey_model_demo.ipynb
 If you use this work, please cite:
 
 ```bibtex
-@article{patra2026bip,
-  title     = {Behavioral Intelligence Platforms: From Event Streams to Autonomous Insight
-               via Probabilistic Journey Graphs, Behavioral Knowledge Extraction,
-               and Grounded Language Generation},
-  author    = {Patra, Arun and Vadgave, Bhushan},
-  year      = {2026},
-  month     = {March},
-  note      = {Submitted for peer review. Preprint available at this repository.},
-  institution = {Journium, Inc.}
+@misc{patra2026bip,
+  title        = {Behavioral Intelligence Platforms: From Event Streams to Autonomous Insight
+                  via Probabilistic Journey Graphs, Behavioral Knowledge Extraction,
+                  and Grounded Language Generation},
+  author       = {Patra, Arun and Vadgave, Bhushan},
+  year         = {2026},
+  month        = mar,
+  howpublished = {Technical report, Journium, Inc.},
+  note         = {Preprint available at this repository.}
 }
 ```
 
