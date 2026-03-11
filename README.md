@@ -3,7 +3,9 @@
 **Authors:** Arun Patra, Bhushan Vadgave — Journium, Inc.
 **Preprint · March 2026**
 
-📄 **[Read the paper (PDF)](paper.pdf)**
+📄 **[Read the paper (PDF)](https://journium.app/papers/behavioral-intelligence-platform.pdf)**
+
+> Hosted at [journium.app/papers/behavioral-intelligence-platform.pdf](https://journium.app/papers/behavioral-intelligence-platform.pdf) — a stable permalink that works regardless of repo visibility.
 
 ---
 
@@ -118,6 +120,14 @@ If you use this work, please cite:
 ```
 
 *This entry will be updated with the arXiv identifier once the paper is posted.*
+
+---
+
+## Related
+
+- **Research landing page:** [journium.app/research](https://journium.app/research) — paper overview, contributions, BibTeX, and links to blog posts
+- **Blog overview:** [We Built a Formal Framework for Behavioral Analytics. Here's Why.](https://journium.app/blog/behavioral-intelligence-platform) — editorial introduction for a product/developer audience
+- **Journium product:** [journium.app](https://journium.app) — the platform built on this architecture
 
 ---
 
