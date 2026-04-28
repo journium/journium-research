@@ -120,11 +120,11 @@ A key distinction between prior ADE work and the behavioral intelligence setting
 
 \subsection{Markov Models for User Journey Analysis}
 
-Markov chain models have a long history in modeling sequential user behavior, including customer journey attribution across marketing touchpoints. Harbich et al.\ \cite{harbich2017} propose a mixture of Markov models for customer journey map discovery. The MDPI Customer Behaviour Hidden Markov Model \cite{wang2022} extends this to e-commerce with hidden state representations.
+Markov chain models have a long history in modeling sequential user behavior, including customer journey attribution across marketing touchpoints. The marketing-analytics literature has developed Markov-chain attribution models for multi-touch advertising paths: Shao and Li \cite{shao2011} introduced data-driven multi-touch attribution; Anderl et al.\ \cite{anderl2016} formalised graph-based attribution and the \emph{removal effect} of a touchpoint as a structural-importance score; Kakalejcik et al.\ \cite{kakalejcik2022} apply this framework to e-commerce. Harbich et al.\ \cite{harbich2017} propose a mixture of Markov models for customer journey map discovery, and the Customer Behaviour Hidden Markov Model \cite{wang2022} extends this to e-commerce with hidden state representations.
 
 The absorbing Markov chain formalism provides a natural foundation for computing expected journey lengths and outcome probabilities in the presence of uncertain paths. In an absorbing Markov chain with transient states $T$ and absorbing states $A$, the fundamental matrix $N = (I - Q)^{-1}$ gives the expected number of times the chain visits each transient state before absorption, enabling closed-form derivation of conversion probabilities and expected remaining steps \cite{kemeny1960}.
 
-Existing journey analysis tools---Mixpanel's Flows, Amplitude's User Paths, Heap's Path Analysis---offer UI-level path visualization but do not expose the underlying probabilistic model, do not compute removal effects, and require manual interpretation.
+BIP shares the absorbing-Markov-chain machinery and the removal-effect formulation with the marketing attribution lineage above, but differs in setting and objective: marketing attribution explains a known terminal conversion across paid touchpoints to allocate budget; BIP applies the same machinery to in-product behavioral states to autonomously \emph{detect and rank} structurally critical states across the full journey graph, integrate the resulting facts into a knowledge-graph layer, and drive grounded narrative generation. Existing journey analysis tools---Mixpanel's Flows, Amplitude's User Paths, Heap's Path Analysis---offer UI-level path visualization but do not expose the underlying probabilistic model, do not compute removal effects, and require manual interpretation.
 
 \subsection{Process Mining}
 
@@ -358,19 +358,19 @@ The probability of being absorbed by terminal state $t$ when starting from trans
 
 In the product analytics context, $B(s_i, \text{converted})$ is the probability of conversion when \textbf{starting from} transient state $s_i$ --- equivalently, the long-run fraction of journeys that reach \texttt{converted} among those that begin at $s_i$.
 
-In the empirical product context we additionally track $P(\text{converted} \mid \text{reached}(s))$ --- the fraction of observed journeys that converted among all that \emph{visited} $s$ at any point. Figure~\ref{fig:absorption} plots this empirical conditional and its complement for each transient state. For sequential funnels with low re-visitation, $P(\text{converted} \mid \text{reached}(s))$ closely approximates $B(s, \text{converted})$; in the presence of significant looping, the two measures may diverge.
+In the empirical product context we additionally track $P(\text{converted} \mid \text{reached}(s))$ --- the fraction of observed journeys that converted among all that \emph{visited} $s$ at any point. When all journeys begin at a common starting state, the strong Markov property implies $P(\text{converted} \mid \text{reached}(s)) = B(s, \text{converted})$ exactly: conditioning on reaching $s$ collapses the journey distribution to one that effectively starts at $s$, and the future evolution is conditionally independent of the past. The two measures can differ in practice when (i) trajectories are right-censored before absorption (a common artifact of rolling-window snapshots), or (ii) the starting-state distribution itself is heterogeneous and depends on the conditioning event. Figure~\ref{fig:absorption} plots $B[s, \text{converted}]$ directly; the empirical conditional from Monte Carlo trajectories matches to within sampling noise (see \texttt{simulate\_trajectories.py}).
 
-States with a large gap between $P(\text{converted} \mid \text{reached}(s))$ and $P(\text{converted} \mid \neg\,\text{reached}(s))$---\texttt{feature\_used}, \texttt{import\_data}, and \texttt{invite\_teammate} in this example---are strong candidate activation drivers.
+For activation-driver detection (Section~\ref{sec:detectors}), the relevant comparison is between $B(s, \text{converted})$ and $P(\text{converted} \mid \neg\,\text{reached}(s))$ --- the conversion rate among journeys that bypass $s$ entirely. States with a large gap between these two quantities---\texttt{feature\_used}, \texttt{import\_data}, and \texttt{invite\_teammate} in this example---are strong candidate activation drivers, with import\_data the most extreme: journeys that bypass \texttt{import\_data} convert only $\sim$3\% of the time vs.\ $\sim$58\% among those that reach it (lift $\approx 20\times$).
 
 \begin{figure}[htbp]
 \centering
 \begin{tikzpicture}
 \begin{axis}[
-  ybar=5pt,
-  bar width=14pt,
+  ybar,
+  bar width=18pt,
   width=0.80\linewidth,
   height=6.2cm,
-  ylabel={Conversion probability},
+  ylabel={$B[s, \text{converted}]$},
   ylabel style={font=\small},
   xtick={1,2,3,4},
   xticklabels={%
@@ -379,32 +379,29 @@ States with a large gap between $P(\text{converted} \mid \text{reached}(s))$ and
     \texttt{import\_data},
     \texttt{invite\_teammate}},
   xticklabel style={font=\small, rotate=12, anchor=east},
-  ymin=0, ymax=0.88,
+  ymin=0, ymax=0.85,
   ytick={0,0.2,0.4,0.6,0.8},
   yticklabel style={font=\small},
-  legend style={at={(0.97,0.97)}, anchor=north east, font=\small},
-  legend cell align=left,
   grid=major,
   grid style={dashed,gray!30},
+  nodes near coords,
+  nodes near coords style={font=\scriptsize},
   enlarge x limits=0.18,
 ]
 \addplot[fill=blue!50, draw=blue!70] coordinates {
-  (1,0.23) (2,0.58) (3,0.58) (4,0.72)
+  (1,0.165) (2,0.279) (3,0.577) (4,0.710)
 };
-\addplot[fill=orange!55, draw=orange!75] coordinates {
-  (1,0.04) (2,0.09) (3,0.18) (4,0.14)
-};
-\legend{%
-  $P(\text{converted} \mid \text{reached}(s))$,
-  $P(\text{converted} \mid \neg\,\text{reached}(s))$}
 \end{axis}
 \end{tikzpicture}
-\caption{Absorption probabilities $B$ (Eq.~\eqref{eq:absorption}) computed from
-synthetic simulation data. Blue bars show the probability of conversion given the
-user visited state $s$; orange bars show conversion probability among users who
-never visited $s$. Note that \texttt{import\_data} achieves a lift of
-$0.58 / 0.18 \approx 3.2\times$, consistent with the fact bundle example in
-Section~\ref{sec:gll}.}
+\caption{Absorption probabilities $B[s, \text{converted}]$
+(Eq.~\eqref{eq:absorption}) computed by closed form from the transition
+matrix in Figure~\ref{fig:markov} via $B = N \cdot R$. Each bar is the
+probability that a journey starting from state $s$ ultimately reaches
+\texttt{converted}. Reproduced exactly by \texttt{markov\_journey\_model.py};
+the empirical conditional $P(\text{converted} \mid \text{reached}(s))$ from
+Monte Carlo trajectories agrees with $B[s, \text{converted}]$ to within
+sampling noise (see \texttt{simulate\_trajectories.py}), as required by the
+strong Markov property when all journeys share a common starting state.}
 \label{fig:absorption}
 \end{figure}
 
@@ -517,7 +514,7 @@ where:
 \begin{itemize}[leftmargin=1.5em]
   \item \textbf{significance} is the statistical confidence of the finding ($1 - p\text{-value}$), penalized for small sample sizes.
   \item \textbf{magnitude} is the normalized effect size: $|\text{lift} - 1|$ for conversion-related findings, $|\Delta P| / P_{t-1}$ for regression findings, normalized to $[0, 1]$.
-  \item \textbf{reach} is the fraction of the user population affected by the finding.
+  \item \textbf{reach} is the fraction of the user population affected by the finding. We distinguish this finding-level \emph{population reach} from the state-level \emph{reach rate} of Eq.~\eqref{eq:reachrate}, which is per-journey rather than per-user. The two coincide when each user contributes exactly one journey; in multi-journey-per-user products they diverge, and the scoring layer uses the per-user quantity to align with deployment impact.
   \item \textbf{actionability} is a heuristic score that favors findings for which product or engineering actions are known to exist.
   \item \textbf{novelty} measures the recency of the finding relative to prior snapshots.
 \end{itemize}
@@ -556,7 +553,7 @@ Each behavioral fact carries a confidence score in $[0, 1]$ computed as:
   \label{eq:confidence}
 \end{equation}
 
-where $\sigma$ is the logistic function, $z_{\text{score}}$ is the z-statistic, $n$ is the sample size, $n_{\min}$ is the configured minimum threshold, and $(a, b, c)$ are coefficients calibrated against historical annotation data (deployment-specific). Confidence is presented to end users as a qualitative label (High, Medium, Low).
+where $\sigma$ is the logistic function, $z_{\text{score}}$ is the z-statistic, $n$ is the sample size, $n_{\min}$ is the configured minimum threshold, and $(a, b, c)$ are deployment-specific coefficients to be calibrated against ground-truth annotations once a deployed BIP instance accumulates them. Eq.~\eqref{eq:confidence} should therefore be read as defining a \emph{family} of confidence functions parameterised by $(a, b, c)$, rather than a closed-form result; the present paper does not commit to specific coefficient values, and the public simulation scripts do not implement Eq.~\eqref{eq:confidence}. Once calibrated, confidence is presented to end users as a qualitative label (High, Medium, Low).
 
 % ---------------------------------------------------------------
 \section{Detector System}
@@ -604,6 +601,8 @@ The path quality detector evaluates materialized paths on a composite quality sc
 
 High-quality paths are surfaced as findings with predicate \texttt{is\_fast\_path\_to}. Low-quality paths with high occurrence rates are flagged as candidate optimization targets. Note that average duration and path length are positively correlated; the multiplicative formulation jointly penalizes both dimensions. This is intentional for the present setting, where long and slow paths are doubly undesirable; however, practitioners may elect to drop one factor if the correlation is strong in a given dataset.
 
+$Q_{\text{path}}$ is dimensionally heterogeneous (probability $\times$ inverse-time $\times$ inverse-length) and is therefore intended as a \emph{relative ranking} score within a single deployment, not as an absolute quantity comparable across deployments. Cross-deployment comparison requires either (i) per-deployment normalisation of duration and length to dimensionless quantities (e.g., dividing by the median path duration and length within the deployment), or (ii) replacing the inverse factors with bounded sigmoidal transforms over chosen reference scales.
+
 \subsection{Detector Composition and Ordering}
 
 Detectors run sequentially after each snapshot build. The orchestrator manages dependencies via a directed acyclic graph of detector jobs. Within each job, detectors are independently parallelizable.
@@ -630,16 +629,16 @@ State: "import_data"
 Predicate: is_activation_driver_for
 Object: outcome:converted
 Evidence:
-  - reach_rate: 0.31
+  - reach_rate: 0.25
   - P(converted | reached): 0.58
-  - P(converted | not reached): 0.18
-  - lift: 3.22
-  - removal_effect: 0.12
+  - P(converted | not reached): 0.03
+  - lift: 19.88
+  - removal_effect: 0.14
   - sample_size: 4,201
   - confidence: High
 Supporting facts:
-  - "import_data" commonly_precedes "invite_teammate" (p=0.41)
-  - "import_data" is_dropoff_point_for exit (p_dropoff=0.22)
+  - "import_data" transitions_to "invite_teammate" (p=0.70)
+  - "import_data" is_dropoff_point_for "dropped_off" (p_dropoff=0.22)
 \end{lstlisting}
 \end{minipage}
 
@@ -666,7 +665,7 @@ In addition to push-based insight delivery, the GLL supports a pull-based query 
 
 Evaluating behavioral intelligence systems presents challenges not present in standard supervised learning settings. There is no ground truth for the set of insights that should be generated from a given event stream. Evaluation must operate across multiple dimensions: computational correctness, statistical validity, and insight quality.
 
-The Markov chain computations underlying Figures~\ref{fig:markov} and~\ref{fig:removal} and Table~\ref{tab:scoring} are reproduced by the public simulation scripts at \url{https://github.com/journium/journium-research}. Figure~\ref{fig:absorption} shows empirical conditional conversion rates $P(\text{converted} \mid \text{reached}(s))$ from synthetic trajectory data; these are distinct from, but consistent with, the absorption probabilities $B$ computed by the scripts (see Section~\ref{sec:formal}). All figures serve as worked examples of formal correctness, not as empirical evaluation of a deployed system.
+The Markov chain computations underlying Figures~\ref{fig:markov}, \ref{fig:absorption}, and~\ref{fig:removal}, as well as Table~\ref{tab:scoring} and the fact bundle in Section~\ref{sec:gll}, are reproduced exactly by the public simulation scripts at \url{https://github.com/journium/journium-research}: closed-form computation in \texttt{markov\_journey\_model.py} and \texttt{removal\_effect.py}, Monte Carlo verification of empirical conditional conversion rates in \texttt{simulate\_trajectories.py}, and composite scoring in \texttt{interestingness\_scoring.py}. All figures serve as worked examples of formal correctness, not as empirical evaluation of a deployed system.
 
 \subsection{Correctness Metrics}
 

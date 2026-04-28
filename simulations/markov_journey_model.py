@@ -11,8 +11,8 @@ estimates the fundamental matrix N = (I - Q)^{-1}, and computes:
   - Expected number of visits to each transient state (rows of N)
   - Expected remaining steps until absorption (row sums of N)
   - Absorption probability matrix B = N * R
-    - B[i, 'converted'] = outcome conversion probability from state i
-    - B[i, 'dropped']   = drop-off probability from state i
+    - B[i, 'converted']   = outcome conversion probability from state i
+    - B[i, 'dropped_off'] = drop-off probability from state i
 
 Usage
 -----
@@ -29,10 +29,10 @@ import numpy as np
 # ---------------------------------------------------------------------------
 # States matching the paper's example funnel (Figure 2):
 #   Transient: sign_up, feature_used, import_data, invite_teammate
-#   Absorbing: converted (paid), dropped (churned)
+#   Absorbing: converted (paid), dropped_off (churned)
 
 TRANSIENT = ["sign_up", "feature_used", "import_data", "invite_teammate"]
-ABSORBING = ["converted", "dropped"]
+ABSORBING = ["converted", "dropped_off"]
 
 # ---------------------------------------------------------------------------
 # Transition probability matrix P (rows = from, cols = to)
@@ -40,18 +40,18 @@ ABSORBING = ["converted", "dropped"]
 # ---------------------------------------------------------------------------
 #
 # Layout: [sign_up, feature_used, import_data, invite_teammate,
-#          converted, dropped]
+#          converted, dropped_off]
 #
 # Row must sum to 1.0 (row-stochastic property, Eq. 2)
 
 P_full = np.array([
-    # from sign_up      -> feature_used(0.52), converted(0.02), dropped(0.46)
+    # from sign_up      -> feature_used(0.52), converted(0.02), dropped_off(0.46)
     [0.00, 0.52, 0.00, 0.00,  0.02, 0.46],
-    # from feature_used -> sign_up(0.15), import_data(0.44), dropped(0.41)
+    # from feature_used -> sign_up(0.15), import_data(0.44), dropped_off(0.41)
     [0.15, 0.00, 0.44, 0.00,  0.00, 0.41],
-    # from import_data  -> invite_teammate(0.70), converted(0.08), dropped(0.22)
+    # from import_data  -> invite_teammate(0.70), converted(0.08), dropped_off(0.22)
     [0.00, 0.00, 0.00, 0.70,  0.08, 0.22],
-    # from invite_teammate -> converted(0.71), dropped(0.29)
+    # from invite_teammate -> converted(0.71), dropped_off(0.29)
     [0.00, 0.00, 0.00, 0.00,  0.71, 0.29],
 ])
 
@@ -92,45 +92,52 @@ B = N @ R
 # ---------------------------------------------------------------------------
 # Display results
 # ---------------------------------------------------------------------------
-np.set_printoptions(precision=4, suppress=True, linewidth=100)
 
-print("=" * 60)
-print("Absorbing Markov Chain — BIP Journey Model Demo")
-print("=" * 60)
 
-print("\nTransient states:", TRANSIENT)
-print("Absorbing states:", ABSORBING)
+def main() -> None:
+    np.set_printoptions(precision=4, suppress=True, linewidth=100)
 
-print("\n--- Sub-stochastic matrix Q (transient → transient) ---")
-print(Q)
+    print("=" * 60)
+    print("Absorbing Markov Chain — BIP Journey Model Demo")
+    print("=" * 60)
 
-print("\n--- Absorption matrix R (transient → absorbing) ---")
-print(R)
+    print("\nTransient states:", TRANSIENT)
+    print("Absorbing states:", ABSORBING)
 
-print("\n--- Fundamental matrix N = (I - Q)^{-1} ---")
-print(N)
-_header = "  " + "  ".join(f"{s:>18}" for s in TRANSIENT)
-print(_header)
-for i, row in enumerate(N):
-    vals = "  ".join(f"{v:>18.4f}" for v in row)
-    print(f"  {TRANSIENT[i]:<18}  {vals}")
+    print("\n--- Sub-stochastic matrix Q (transient → transient) ---")
+    print(Q)
 
-print("\n--- Expected remaining steps until absorption (row sums of N) ---")
-for i, ti in enumerate(t_vec):
-    print(f"  From {TRANSIENT[i]:<20}: {ti:.4f} expected steps")
+    print("\n--- Absorption matrix R (transient → absorbing) ---")
+    print(R)
 
-print("\n--- Absorption probability matrix B = N * R ---")
-print(f"  {'State':<22} {'P(converted)':>14} {'P(dropped)':>12}")
-print("  " + "-" * 50)
-for i, row in enumerate(B):
-    print(f"  {TRANSIENT[i]:<22} {row[0]:>14.4f} {row[1]:>12.4f}")
+    print("\n--- Fundamental matrix N = (I - Q)^{-1} ---")
+    print(N)
+    header = "  " + "  ".join(f"{s:>18}" for s in TRANSIENT)
+    print(header)
+    for i, row in enumerate(N):
+        vals = "  ".join(f"{v:>18.4f}" for v in row)
+        print(f"  {TRANSIENT[i]:<18}  {vals}")
 
-print("\n--- Key insight ---")
-best_idx = int(np.argmax(B[:, 0]))
-print(
-    f"  Highest conversion probability from '{TRANSIENT[best_idx]}': "
-    f"{B[best_idx, 0]:.1%}\n"
-    f"  Lowest  conversion probability from '{TRANSIENT[np.argmin(B[:, 0])]}': "
-    f"{B[np.argmin(B[:, 0]), 0]:.1%}"
-)
-print("=" * 60)
+    print("\n--- Expected remaining steps until absorption (row sums of N) ---")
+    for i, ti in enumerate(t_vec):
+        print(f"  From {TRANSIENT[i]:<20}: {ti:.4f} expected steps")
+
+    print("\n--- Absorption probability matrix B = N * R ---")
+    print(f"  {'State':<22} {'P(converted)':>14} {'P(dropped_off)':>16}")
+    print("  " + "-" * 54)
+    for i, row in enumerate(B):
+        print(f"  {TRANSIENT[i]:<22} {row[0]:>14.4f} {row[1]:>16.4f}")
+
+    print("\n--- Key insight ---")
+    best_idx = int(np.argmax(B[:, 0]))
+    print(
+        f"  Highest conversion probability from '{TRANSIENT[best_idx]}': "
+        f"{B[best_idx, 0]:.1%}\n"
+        f"  Lowest  conversion probability from '{TRANSIENT[np.argmin(B[:, 0])]}': "
+        f"{B[np.argmin(B[:, 0]), 0]:.1%}"
+    )
+    print("=" * 60)
+
+
+if __name__ == "__main__":
+    main()
