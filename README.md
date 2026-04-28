@@ -1,11 +1,11 @@
 # Behavioral Intelligence Platforms: From Event Streams to Autonomous Insight
 
 **Authors:** Arun Patra, Bhushan Vadgave — Journium, Inc.
-**Preprint · March 2026**
+**Preprint · March 2026 · [arXiv:2604.22762](https://arxiv.org/abs/2604.22762)**
 
-📄 **[Read the paper (PDF)](https://journium.app/papers/behavioral-intelligence-platform.pdf)**
+📄 **[Read the paper on arXiv](https://arxiv.org/abs/2604.22762)** · **[Direct PDF](https://journium.app/papers/behavioral-intelligence-platform.pdf)**
 
-> Hosted at [journium.app/papers/behavioral-intelligence-platform.pdf](https://journium.app/papers/behavioral-intelligence-platform.pdf) — a stable permalink that works regardless of repo visibility.
+> arXiv link is canonical. The mirror at [journium.app/papers/behavioral-intelligence-platform.pdf](https://journium.app/papers/behavioral-intelligence-platform.pdf) is a stable permalink that works regardless of repo visibility.
 
 ---
 
@@ -47,8 +47,9 @@ journium-research/
 ├── paper.pdf           # Compiled PDF (easy one-click access)
 ├── simulations/        # Code reproducing the formal results
 │   ├── markov_journey_model.py
-│   ├── interestingness_scoring.py
 │   ├── removal_effect.py
+│   ├── simulate_trajectories.py
+│   ├── interestingness_scoring.py
 │   └── notebooks/
 ├── data/               # Supporting datasets and simulation outputs
 │   └── synthetic/
@@ -87,11 +88,16 @@ pip install -r requirements.txt
 # Absorbing Markov chain: fundamental matrix N and absorption probabilities B
 python markov_journey_model.py
 
-# Composite interestingness scoring (Section 5.5)
-python interestingness_scoring.py
-
 # Removal effect computation (Section 5.4)
 python removal_effect.py
+
+# Monte Carlo trajectory simulation: empirical verification of Figure 3
+# and the Section 7.2 fact bundle (confirms P(c|reached(s)) = B[s,c]
+# under the strong Markov property)
+python simulate_trajectories.py
+
+# Composite interestingness scoring (Section 5.5)
+python interestingness_scoring.py
 ```
 
 For interactive walkthroughs:
@@ -107,19 +113,18 @@ jupyter notebook simulations/notebooks/journey_model_demo.ipynb
 If you use this work, please cite:
 
 ```bibtex
-@misc{patra2026bip,
-  title        = {Behavioral Intelligence Platforms: From Event Streams to Autonomous Insight
-                  via Probabilistic Journey Graphs, Behavioral Knowledge Extraction,
-                  and Grounded Language Generation},
-  author       = {Patra, Arun and Vadgave, Bhushan},
-  year         = {2026},
-  month        = mar,
-  howpublished = {Technical report, Journium, Inc.},
-  note         = {Preprint available at this repository.}
+@misc{patra2026behavioralintelligenceplatformsevent,
+      title         = {Behavioral Intelligence Platforms: From Event Streams to Autonomous Insight via Probabilistic Journey Graphs, Behavioral Knowledge Extraction, and Grounded Language Generation},
+      author        = {Arun Patra and Bhushan Vadgave},
+      year          = {2026},
+      eprint        = {2604.22762},
+      archivePrefix = {arXiv},
+      primaryClass  = {cs.IR},
+      url           = {https://arxiv.org/abs/2604.22762},
 }
 ```
 
-*This entry will be updated with the arXiv identifier once the paper is posted.*
+The paper is on arXiv as [arXiv:2604.22762](https://arxiv.org/abs/2604.22762) (cs.IR).
 
 ---
 

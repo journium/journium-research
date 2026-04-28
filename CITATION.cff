@@ -8,11 +8,11 @@ title: >-
 authors:
   - family-names: Patra
     given-names: Arun
-    email: arun@journium.inc
+    email: arun@journium.app
     affiliation: "Journium, Inc."
   - family-names: Vadgave
     given-names: Bhushan
-    email: bhushan@journium.inc
+    email: bhushan@journium.app
     affiliation: "Journium, Inc."
 date-released: "2026-03-01"
 version: "1.0.0"
@@ -43,5 +43,8 @@ repository-code: "https://github.com/journium/journium-research"
 url: "https://journium.app/papers/behavioral-intelligence-platform.pdf"
 identifiers:
   - type: other
-    value: "Submitted for peer review, March 2026"
-    description: "Submission status (arXiv identifier to be added upon posting)"
+    value: "arXiv:2604.22762"
+    description: "arXiv preprint identifier"
+  - type: url
+    value: "https://arxiv.org/abs/2604.22762"
+    description: "arXiv abstract page"
