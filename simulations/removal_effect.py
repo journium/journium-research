@@ -39,22 +39,22 @@ import numpy as np
 
 # States matching the paper's example funnel (Figure 2):
 #   Transient: sign_up, feature_used, import_data, invite_teammate
-#   Absorbing: converted (paid), dropped (churned)
+#   Absorbing: converted (paid), dropped_off (churned)
 
 TRANSIENT = ["sign_up", "feature_used", "import_data", "invite_teammate"]
-ABSORBING = ["converted", "dropped"]
+ABSORBING = ["converted", "dropped_off"]
 
 # Full transition matrix (rows = from transient states, cols = all states)
 # Layout: [sign_up, feature_used, import_data, invite_teammate,
-#          converted, dropped]
+#          converted, dropped_off]
 P_full = np.array([
-    # from sign_up      -> feature_used(0.52), converted(0.02), dropped(0.46)
+    # from sign_up      -> feature_used(0.52), converted(0.02), dropped_off(0.46)
     [0.00, 0.52, 0.00, 0.00,  0.02, 0.46],
-    # from feature_used -> sign_up(0.15), import_data(0.44), dropped(0.41)
+    # from feature_used -> sign_up(0.15), import_data(0.44), dropped_off(0.41)
     [0.15, 0.00, 0.44, 0.00,  0.00, 0.41],
-    # from import_data  -> invite_teammate(0.70), converted(0.08), dropped(0.22)
+    # from import_data  -> invite_teammate(0.70), converted(0.08), dropped_off(0.22)
     [0.00, 0.00, 0.00, 0.70,  0.08, 0.22],
-    # from invite_teammate -> converted(0.71), dropped(0.29)
+    # from invite_teammate -> converted(0.71), dropped_off(0.29)
     [0.00, 0.00, 0.00, 0.00,  0.71, 0.29],
 ])
 
@@ -107,8 +107,8 @@ def remove_state(P: np.ndarray, s_idx: int) -> tuple[np.ndarray, list[str]]:
                 # Re-normalise so row sums to 1
                 P_mod[i, :] /= remaining
             else:
-                # All transitions went to s_idx (degenerate): send directly to 'dropped'
-                dropped_col = n_t + ABSORBING.index("dropped")
+                # All transitions went to s_idx (degenerate): send directly to 'dropped_off'
+                dropped_col = n_t + ABSORBING.index("dropped_off")
                 P_mod[i, dropped_col] = 1.0
 
     # Step 3: delete row and column of s_idx from P
