@@ -25,13 +25,19 @@ clean:
 	@echo "Build artifacts removed."
 
 ## Package source for arXiv submission.
-## arXiv requires: main.tex, bibliography.bib, and all figures.
+## Includes main.tex, bibliography.bib, the pre-compiled main.bbl, and figures/.
+## Bundling main.bbl is a safety net: arXiv's Submission 1.5 system normally
+## runs BibTeX server-side, but shipping the resolved .bbl removes a class of
+## failure modes (engine-version drift, missing .bst on the server, etc.).
 arxiv-package: pdf
 	tar -czf $(ARCHIVE) \
 	    $(TEXFILE) \
 	    bibliography.bib \
+	    $(MAIN).bbl \
 	    figures/
 	@echo "arXiv submission package: $(ARCHIVE)"
+	@echo "Contents:"
+	@tar -tzf $(ARCHIVE) | sed 's/^/  /'
 
 ## Show available targets.
 help:
