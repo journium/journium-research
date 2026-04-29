@@ -1,7 +1,7 @@
 # Behavioral Intelligence Platforms: From Event Streams to Autonomous Insight
 
 **Authors:** Arun Patra, Bhushan Vadgave — Journium, Inc.
-**Preprint · March 2026 · [arXiv:2604.22762](https://arxiv.org/abs/2604.22762)**
+**Preprint · March 2026 · v2 April 2026 · [arXiv:2604.22762](https://arxiv.org/abs/2604.22762)**
 
 📄 **[Read the paper on arXiv](https://arxiv.org/abs/2604.22762)** · **[Direct PDF](https://journium.app/papers/behavioral-intelligence-platform.pdf)**
 

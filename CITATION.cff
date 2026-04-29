@@ -14,8 +14,8 @@ authors:
     given-names: Bhushan
     email: bhushan@journium.app
     affiliation: "Journium, Inc."
-date-released: "2026-03-01"
-version: "1.0.0"
+date-released: "2026-04-29"
+version: "2.0.0"
 abstract: >-
   We present the Behavioral Intelligence Platform (BIP), a system architecture
   and formal framework that transforms raw event streams into automatically
